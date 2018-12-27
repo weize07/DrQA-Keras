@@ -293,7 +293,6 @@ def read_dataset(input_file):
             document.append(cur_line)
         dataset[json_obj['id']] = {'uid': uid, 'question': ' '.join(json_obj['question']), 'document': document}
         uid += 1
-        break
   return dataset
 
 
@@ -326,6 +325,10 @@ def main(_):
   for feature in doc_features:
     doc_unique_id_to_feature[feature.unique_id] = feature
 
+  que_unique_id_to_feature = {}
+  for feature in que_features:
+    que_unique_id_to_feature[feature.unique_id] = feature
+
   model_fn = model_fn_builder(
       bert_config=bert_config,
       init_checkpoint=FLAGS.init_checkpoint,
@@ -341,14 +344,18 @@ def main(_):
       config=run_config,
       predict_batch_size=FLAGS.batch_size)
 
+  fn_and_output(estimator, layer_indexes, doc_features, doc_unique_id_to_feature, unique_id_to_drqa_id, 'doc')
+  fn_and_output(estimator, layer_indexes, que_features, que_unique_id_to_feature, unique_id_to_drqa_id, 'question')
+  
+def fn_and_output(estimator, layer_indexes, features, unique_id_to_feature, unique_id_to_drqa_id, feature_type):
   input_fn = input_fn_builder(
-      features=doc_features, seq_length=FLAGS.max_seq_length)
+      features=features, seq_length=FLAGS.max_seq_length)
 
-  with codecs.getwriter("utf-8")(tf.gfile.Open(FLAGS.output_file,
+  with codecs.getwriter("utf-8")(tf.gfile.Open(feature_type + '_' + FLAGS.output_file,
                                                "w")) as writer:
     for result in estimator.predict(input_fn, yield_single_examples=True):
       unique_id = int(result["unique_id"])
-      feature = doc_unique_id_to_feature[unique_id]
+      feature = unique_id_to_feature[unique_id]
       output_json = collections.OrderedDict()
       output_json["linex_index"] = unique_id
       output_json["id"] = unique_id_to_drqa_id[unique_id]
