@@ -261,14 +261,14 @@ def convert_dataset_to_features(dataset, seq_length, tokenizer):
     doc_features.append(
         InputFeatures(
             unique_id=unique_id,
-            tokens=tokens,
+            tokens=doc_tokens,
             input_ids=doc_input_ids,
             input_mask=doc_input_mask,
             input_type_ids=doc_input_type_ids))
     que_features.append(
         InputFeatures(
             unique_id=unique_id,
-            tokens=tokens,
+            tokens=que_tokens,
             input_ids=que_input_ids,
             input_mask=que_input_mask,
             input_type_ids=que_input_type_ids))
