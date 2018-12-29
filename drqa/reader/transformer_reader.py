@@ -3,6 +3,8 @@ import os
 import json
 
 from drqa.reader import utils, vector, config, data
+from keras.models import Model
+from keras.layers import Input, Dense
 ROOT_DIR = '/Users/weize/Workspace/VENV-3.6/workspace/DrQA-Keras'
 
 def prepare_data(args):
@@ -29,6 +31,35 @@ def prepare_data(args):
 
     return train_exs
 
+def train_network(train_exs):
+    X = []
+    Y = []
+    for train_ex in train_exs:
+        for i in range(len(train_ex['document'])):
+            x = train_ex['document'][i] + train_ex['question']
+            if train['answer'][0] == i:
+                y1 = [1]
+            else:
+                y1 = [0]
+            if train['answer'][1] == i:
+                y2 = [1]
+            else:
+                y2 = [0]
+            X.append(x)
+            Y.append([y1, y2])
+    
+    input_dim = len(X[0])
+    a = Input(shape=(input_dim,))
+    b1 = Dense(input_dim)(a)
+    b2 = Dense(input_dim)(a)
+    model = Model(inputs=a, outputs=[b1, b2])
+    model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+    
+    model.fit(X, Y)
+
+    model.save()
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         'DrQA Document Reader',
@@ -40,6 +71,9 @@ if __name__ == '__main__':
     args.bert_question_feature_file = os.path.join(ROOT_DIR, 'data/datasets/que_output.jsonl')
     args.uncased_question = True
     args.uncased_doc = True
-    train_data = prepare_data(args)
-    print(train_data[0])
+    train_exs = prepare_data(args)
+    print(train_exs[0])
+    train_network(train_exs)
+
+
 
