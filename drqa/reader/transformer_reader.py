@@ -59,6 +59,15 @@ def train_network(train_exs):
 
     model.save()
 
+def load_model(model_path):
+    a = Input(shape=(input_dim,))
+    b1 = Dense(input_dim)(a)
+    b2 = Dense(input_dim)(a)
+    model = Model(inputs=a, outputs=[b1, b2])
+    model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+    
+    model.load()
+    return model    
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
