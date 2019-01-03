@@ -67,7 +67,7 @@ def load_model(model_path):
     model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
     
     model.load()
-    return model    
+    return model
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(

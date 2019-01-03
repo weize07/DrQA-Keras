@@ -7,6 +7,8 @@ from drqa import pipeline
 parser = argparse.ArgumentParser()
 parser.add_argument('--reader-model', type=str, default=None,
                     help='Path to trained Document Reader model')
+parser.add_argument('--bert-path', type=str, default=None,
+                    help='Path to BERT')
 parser.add_argument('--retriever-model', type=str, default=None,
                     help='Path to Document Retriever model (tfidf)')
 parser.add_argument('--doc-db', type=str, default=None,
@@ -18,6 +20,7 @@ DrQA_K = pipeline.DrQA_K(
     reader_model=args.reader_model,
     ranker_config={'options': {'tfidf_path': args.retriever_model}},
     db_config={'options': {'db_path': args.doc_db}},
+    bert_path=args.bert_path,
 )
 
 def process(question, candidates=None, top_n=1, n_docs=5):

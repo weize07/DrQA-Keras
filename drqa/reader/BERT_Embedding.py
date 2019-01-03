@@ -123,7 +123,7 @@ def model_fn_builder(bert_config, init_checkpoint, layer_indexes, use_tpu,
     return model_fn
 
 
-class BERT_Embedder(object):
+class BERTEmbedder(object):
     def __init__(self, bert_config_path):
         bert_config_file = os.path.join(bert_config_path, 'bert_config.json')
         bert_vocab_file = os.path.join(bert_config_path, 'vocab.txt')

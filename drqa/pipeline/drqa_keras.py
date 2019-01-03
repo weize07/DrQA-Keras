@@ -14,7 +14,7 @@ def fetch_text(doc_id):
     return PROCESS_DB.get_doc_text(doc_id)
 
 class DrQA_K(object):
-    def __init__(self, reader_model):
+    def __init__(self, reader_model, ranker_config, db_config, bert_path):
         logger.info('Initializing document ranker...')
         ranker_config = ranker_config or {}
         ranker_class = ranker_config.get('class', DEFAULTS['ranker'])
@@ -23,6 +23,9 @@ class DrQA_K(object):
 
         logger.info('Initializing document reader...')
         self.reader = load_model(reader_model)
+
+        logger.info('Initializing bert embedder...')
+        self.bert_embedder = BERTEmbedder(bert_path)
 
         logger.info('Initializing document retrivers')
         tok_class = DEFAULTS['tokenizer']
@@ -47,6 +50,17 @@ class DrQA_K(object):
         flat_docids = list({d for docids in all_docids for d in docids})
         did2didx = {did: didx for didx, did in enumerate(flat_docids)}
         doc_texts = self.processes.map(fetch_text, flat_docids)
+        (doc_embeddings, query_embedding) = self.bert_embedder.embed(doc_texts, query)
+        for doc in doc_embeddings:
+            # process doc one by one, to find answer span in each document
+
+            doc_predicts = []
+            for te in doc:
+                res = self.reader_model.predict(te + query_embedding)
+                doc_predicts.append(res)
+
+            
+
 
         
         
