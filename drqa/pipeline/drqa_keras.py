@@ -51,13 +51,23 @@ class DrQA_K(object):
         did2didx = {did: didx for didx, did in enumerate(flat_docids)}
         doc_texts = self.processes.map(fetch_text, flat_docids)
         (doc_embeddings, query_embedding) = self.bert_embedder.embed(doc_texts, query)
+        doc_best_span = []
         for doc in doc_embeddings:
             # process doc one by one, to find answer span in each document
-
             doc_predicts = []
             for te in doc:
                 res = self.reader_model.predict(te + query_embedding)
                 doc_predicts.append(res)
+
+            start_end = [-1, -1, -1] # start, end, probability
+            for i in range(len(doc_predicts)):
+                predict = doc_predicts[i]
+                start_prob = predict[0]
+                for j in range(i + 1, min(len(doc_predicts), i + 15)):
+                    if start_prob * doc_predicts[j][1] > start_end[2]:
+                        start_end = [i, j, start_prob * doc_predicts[j][1]]
+            doc_best_span.append(start_end)
+        return doc_best_span
 
             
 
