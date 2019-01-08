@@ -203,15 +203,18 @@ class BERTEmbedder(object):
                 input_type_ids=que_input_type_ids))
         return (que_features, len(que_tokens))
 
-    def embed(self, documents, question):
-        (doc_features, max_seq_length) = self._prepare_docs(documents)
-        (que_features, max_seq_length2) = self._prepare_question(question)
+    def embed_document(self, document):
+        (doc_features, max_seq_length) = self._prepare_docs([document])
         doc_input_fn = input_fn_builder(features=doc_features, seq_length=max_seq_length)
-        que_input_fn = input_fn_builder(features=que_features, seq_length=max_seq_length2)
         
         doc_res = self.estimator.predict(doc_input_fn, yield_single_examples=True)
-        que_res = self.estimator.predict(doc_input_fn, yield_single_examples=True)
-        return (doc_res, que_res)
+        return (doc_res, doc_features)
 
+    def embed_question(self, question):
+        (que_features, max_seq_length2) = self._prepare_question(question)
+        que_input_fn = input_fn_builder(features=que_features, seq_length=max_seq_length2)
+        
+        que_res = self.estimator.predict(doc_input_fn, yield_single_examples=True)
+        return (que_res, que_features)
     
 

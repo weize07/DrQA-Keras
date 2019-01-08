@@ -1,19 +1,13 @@
-def load_dataset(path):
-    """Load json file and store fields separately."""
-    with open(path) as f:
+import json
+
+def load_dataset(input_file):
+    """Read a list of `InputExample`s from an input file."""
+    dataset = []
+    with open(input_file) as f:
         data = json.load(f)['data']
-    output = {'qids': [], 'questions': [], 'answers': [],
-              'contexts': [], 'qid2cid': []}
-    for article in data:
-        for paragraph in article['paragraphs']:
-            output['contexts'].append(paragraph['context'])
-            for qa in paragraph['qas']:
-                output['qids'].append(qa['id'])
-                output['questions'].append(qa['question'])
-                output['qid2cid'].append(len(output['contexts']) - 1)
-                if 'answers' in qa:
-                    output['answers'].append(qa['answers'])
-    return output
+        for article in data:
+            dataset.extend(article['paragraphs'])
+    return dataset
 
 def find_answer(offsets, begin_offset, end_offset):
     """Match token offsets with the char begin/end offsets of the answer."""
@@ -24,74 +18,46 @@ def find_answer(offsets, begin_offset, end_offset):
     if len(start) == 1 and len(end) == 1:
         return start[0], end[0]
 
-def process_dataset(data, bert_path, workers=None):
+def process_dataset(dataset, bert_path, workers=None):
     """Iterate processing (tokenize, parse, etc) dataset multithreaded."""
     bert_embedder = BERTEmbedder(bert_path)
-    tokenizer_class = tokenizers.get_class(tokenizer)
-    make_pool = partial(Pool, workers, initializer=init)
-    workers = make_pool(initargs=(tokenizer_class, {'annotators': {'lemma'}}))
-    q_tokens = workers.map(tokenize, data['questions'])
-    workers.close()
-    workers.join()
 
-    workers = make_pool(
-        initargs=(tokenizer_class, {'annotators': {'lemma', 'pos', 'ner'}})
-    )
-    c_tokens = workers.map(tokenize, data['contexts'])
-    workers.close()
-    workers.join()
-
-    for idx in range(len(data['qids'])):
-        question = q_tokens[idx]['words']
-        qlemma = q_tokens[idx]['lemma']
-        document = c_tokens[data['qid2cid'][idx]]['words']
-        offsets = c_tokens[data['qid2cid'][idx]]['offsets']
-        lemma = c_tokens[data['qid2cid'][idx]]['lemma']
-        pos = c_tokens[data['qid2cid'][idx]]['pos']
-        ner = c_tokens[data['qid2cid'][idx]]['ner']
-        ans_tokens = []
-        if len(data['answers']) > 0:
-            for ans in data['answers'][idx]:
-                found = find_answer(offsets,
-                                    ans['answer_start'],
-                                    ans['answer_start'] + len(ans['text']))
-                if found:
-                    ans_tokens.append(found)
-        yield {
-            'id': data['qids'][idx],
-            'question': question,
-            'document': document,
-            'offsets': offsets,
-            'answers': ans_tokens,
-            'qlemma': qlemma,
-            'lemma': lemma,
-            'pos': pos,
-            'ner': ner,
-        }
+    for ctx_and_qas in dataset:
+        context = ctx_and_qas['context']
+        qas = ctx_and_qas['qas']
+        (ctx_bert_features, ctx_raw_features) = bert_embedder.embed_document(context)
+        for qa in qas:
+            question = qa['question']
+            (q_bert_features, q_raw_features) = bert_embedder.embed_question(question)
+    
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('data_dir', type=str, help='Path to SQuAD data directory')
-    parser.add_argument('out_dir', type=str, help='Path to output file dir')
-    parser.add_argument('bert_path', type=str, help='Path to output file dir')
-    parser.add_argument('--split', type=str, help='Filename for train/dev split',
-                        default='SQuAD-v1.1-train')
-    # parser.add_argument('--workers', type=int, default=None)
-    # parser.add_argument('--tokenizer', type=str, default='corenlp')
-    args = parser.parse_args()
+    bert_path = '/Users/weize/Workspace/VENV-3.6/workspace/bert/uncased_L-12_H-768_A-12'
+    dataset = read_dataset('../../data/datasets/SQuAD-v1.1-train.json')
+    process_dataset(dataset, bert_path)
+    # print(dataset[0])
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument('data_dir', type=str, help='Path to SQuAD data directory')
+    # parser.add_argument('out_dir', type=str, help='Path to output file dir')
+    # parser.add_argument('bert_path', type=str, help='Path to output file dir')
+    # parser.add_argument('--split', type=str, help='Filename for train/dev split',
+    #                     default='SQuAD-v1.1-train')
+    # # parser.add_argument('--workers', type=int, default=None)
+    # # parser.add_argument('--tokenizer', type=str, default='corenlp')
+    # args = parser.parse_args()
 
-    t0 = time.time()
+    # t0 = time.time()
 
-    in_file = os.path.join(args.data_dir, args.split + '.json')
-    print('Loading dataset %s' % in_file, file=sys.stderr)
-    dataset = load_dataset(in_file)
+    # in_file = os.path.join(args.data_dir, args.split + '.json')
+    # print('Loading dataset %s' % in_file, file=sys.stderr)
+    # dataset = load_dataset(in_file)
 
-    out_file = os.path.join(
-        args.out_dir, '%s-processed-%s.txt' % (args.split, args.tokenizer)
-    )
-    print('Will write to file %s' % out_file, file=sys.stderr)
-    with open(out_file, 'w') as f:
-        for ex in process_dataset(dataset, args.tokenizer, args.workers):
-            f.write(json.dumps(ex) + '\n')
-    print('Total time: %.4f (s)' % (time.time() - t0))
+    # out_file = os.path.join(
+    #     args.out_dir, '%s-processed-%s.txt' % (args.split, args.tokenizer)
+    # )
+    # print('Will write to file %s' % out_file, file=sys.stderr)
+    # with open(out_file, 'w') as f:
+    #     for ex in process_dataset(dataset, args.tokenizer, args.workers):
+    #         f.write(json.dumps(ex) + '\n')
+    # print('Total time: %.4f (s)' % (time.time() - t0))
