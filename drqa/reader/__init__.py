@@ -26,3 +26,4 @@ from . import config
 from . import vector
 from . import data
 from . import utils
+from .BERT_Embedding import BERTEmbedder

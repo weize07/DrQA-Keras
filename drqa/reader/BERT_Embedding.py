@@ -133,7 +133,7 @@ class BERTEmbedder(object):
         self.tokenizer = tokenization.FullTokenizer(
             vocab_file=bert_vocab_file, do_lower_case=True)
         model_fn = model_fn_builder(
-            bert_config=bert_config,
+            bert_config=self.bert_config,
             init_checkpoint=bert_checkpoint_file,
             layer_indexes=[-1],
             use_tpu=False,
@@ -214,7 +214,7 @@ class BERTEmbedder(object):
         (que_features, max_seq_length2) = self._prepare_question(question)
         que_input_fn = input_fn_builder(features=que_features, seq_length=max_seq_length2)
         
-        que_res = self.estimator.predict(doc_input_fn, yield_single_examples=True)
+        que_res = self.estimator.predict(que_input_fn, yield_single_examples=True)
         return (que_res, que_features)
     
 
