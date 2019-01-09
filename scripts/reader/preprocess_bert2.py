@@ -11,6 +11,7 @@ def load_dataset(input_file):
         data = json.load(f)['data']
         for article in data:
             dataset.extend(article['paragraphs'])
+            break
     return dataset
 
 def find_answer(offsets, begin_offset, end_offset):
@@ -30,17 +31,20 @@ def process_dataset(dataset, bert_path, workers=None):
     for ctx_and_qas in dataset:
         context = ctx_and_qas['context']
         qas = ctx_and_qas['qas']
-        (ctx_bert_features, ctx_raw_features) = bert_embedder.embed_document(context)
+        (ctx_bert_predict, ctx_raw_features) = bert_embedder.embed_document(context)
         for qa in qas:
             question = qa['question']
-            (q_bert_features, q_raw_features) = bert_embedder.embed_question(question)
-            print(ctx_bert_features)
+            (q_bert_predict, q_raw_features) = bert_embedder.embed_question(question)
+            # print(ctx_bert_features)
+            for result in ctx_bert_predict:
+                print(result)
             print('----------')
-            print(ctx_raw_features)
+            # print(ctx_raw_features)
+            # print('----------')
+            for result in q_bert_predict:
+                print(result)
             print('----------')
-            print(q_bert_features)
-            print('----------')
-            print(q_raw_features)
+            # print(q_raw_features)
             exit()
 
 
@@ -56,6 +60,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     # bert_path = '/Users/weize/Workspace/VENV-3.6/workspace/bert/uncased_L-12_H-768_A-12'
     dataset = load_dataset(os.path.join(args.data_dir, 'SQuAD-v1.1-train.json'))
+    print('SQuAD-v1.1 dataset length: ', len(dataset))
     process_dataset(dataset, args.bert_path)
 
     

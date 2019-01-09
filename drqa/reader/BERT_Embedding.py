@@ -155,9 +155,9 @@ class BERTEmbedder(object):
 
     def _prepare_docs(self, documents):
         doc_features = []
-        max_seq_length = -1
-        for doc in documents:
-            max_seq_length = max(max_seq_length, len(doc))
+        max_seq_length = 512
+        # for doc in documents:
+        #     max_seq_length = max(max_seq_length, len(doc))
         for i in range(len(documents)):
             doc = documents[i]
             doc_tokens = []
