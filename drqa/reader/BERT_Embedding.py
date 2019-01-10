@@ -216,5 +216,10 @@ class BERTEmbedder(object):
         
         que_res = self.estimator.predict(que_input_fn, yield_single_examples=True)
         return (que_res, que_features)
+
+    def convert_txt_to_token_ids(self, text):
+        tokens = self.tokenizer.tokenize(text)
+        return self.tokenizer.convert_tokens_to_ids(tokens)
+
     
 

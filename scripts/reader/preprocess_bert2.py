@@ -14,38 +14,54 @@ def load_dataset(input_file):
             break
     return dataset
 
-def find_answer(offsets, begin_offset, end_offset):
+def find_answer(ctx_token_ids, ans_token_ids):
     """Match token offsets with the char begin/end offsets of the answer."""
-    start = [i for i, tok in enumerate(offsets) if tok[0] == begin_offset]
-    end = [i for i, tok in enumerate(offsets) if tok[1] == end_offset]
-    assert(len(start) <= 1)
-    assert(len(end) <= 1)
-    if len(start) == 1 and len(end) == 1:
-        return start[0], end[0]
+    # TODO: use KMP to improve performance
+    ans_index = 0
+    ctx_start = 0
+    ctx_index = 0
+    while ctx_start < len(ctx_token_ids) - len(ans_token_ids):
+        if ans_token_ids[ans_index] == ctx_token_ids[ctx_index]:
+            ans_index += 1
+            ctx_index += 1
+            if ans_index == len(ans_token_ids):
+                return [ctx_start, ctx_index]
+        else:
+            ctx_start += 1
+            ctx_index = ctx_start
+            answer_index = 0
+    return None
+
 
 def process_dataset(dataset, bert_path, workers=None):
     """Iterate processing (tokenize, parse, etc) dataset multithreaded."""
     bert_embedder = BERTEmbedder(bert_path)
 
-    processed = []
+    processed = {'contexts': {}, 'qas': {}}
+    cid = 1
     for ctx_and_qas in dataset:
         context = ctx_and_qas['context']
         qas = ctx_and_qas['qas']
         (ctx_bert_predict, ctx_raw_features) = bert_embedder.embed_document(context)
+        ctx_bert_features = None
+        for result in ctx_bert_predict:
+            ctx_bert_features = result['layer_output_0']
+        ctx_token_ids = ctx_raw_features[0].input_ids
+        ctx_tokens = ctx_raw_features[0].tokens
+        ctx = {'bert_features': ctx_bert_features, 'cid': cid, 'text': context}
+        print('----------')
         for qa in qas:
             question = qa['question']
             (q_bert_predict, q_raw_features) = bert_embedder.embed_question(question)
-            # print(ctx_bert_features)
-            for result in ctx_bert_predict:
-                print(result)
-            print('----------')
-            # print(ctx_raw_features)
-            # print('----------')
+            q_bert_features = None
             for result in q_bert_predict:
-                print(result)
-            print('----------')
-            # print(q_raw_features)
+                q_bert_features = result['layer_output_0']
+            answer_token_ids = bert_embedder.convert_txt_to_token_ids(qa['answers'][0]['text'])
+            answer_offsets = find_answer(ctx_token_ids, answer_token_ids)
+            if answer_offsets is not None:
+                print(ctx_tokens[answer_offsets[0]:answer_offsets[1]])
             exit()
+        cid += 1
 
 
 if __name__ == '__main__':
