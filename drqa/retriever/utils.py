@@ -6,7 +6,7 @@
 # LICENSE file in the root directory of this source tree.
 """Various retriever utilities."""
 
-import regex
+import re as regex
 import unicodedata
 import numpy as np
 import scipy.sparse as sp

@@ -10,7 +10,7 @@ However it is purely in Python, supports robust untokenization, unicode,
 and requires minimal dependencies.
 """
 
-import regex
+import re as regex
 import logging
 from .tokenizer import Tokens, Tokenizer
 

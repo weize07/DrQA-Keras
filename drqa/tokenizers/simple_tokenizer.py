@@ -8,7 +8,7 @@
 non-whitespace tokens.
 """
 
-import regex
+import re as regex
 import logging
 from .tokenizer import Tokens, Tokenizer
 

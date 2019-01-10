@@ -7,7 +7,7 @@
 """Full DrQA pipeline."""
 
 import torch
-import regex
+import re as regex
 import heapq
 import math
 import time
