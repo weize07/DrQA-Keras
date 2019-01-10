@@ -48,7 +48,7 @@ def process_dataset(dataset, bert_path, workers=None):
             ctx_bert_features = result['layer_output_0']
         ctx_token_ids = ctx_raw_features[0].input_ids
         ctx_tokens = ctx_raw_features[0].tokens
-        processed_ctx = {'bert_features': ctx_bert_features, 'cid': cid, 'tokens': ctx_tokens}
+        processed_ctx = {'bert_features': ctx_bert_features.tolist(), 'cid': cid, 'tokens': ctx_tokens}
         processed_dataset['contexts'][cid] = processed_ctx
         for qa in qas:
             question = qa['question']
@@ -59,7 +59,7 @@ def process_dataset(dataset, bert_path, workers=None):
             answer_token_ids = bert_embedder.convert_txt_to_token_ids(qa['answers'][0]['text'])
             answer_offsets = find_answer(ctx_token_ids, answer_token_ids)
             if answer_offsets is not None:
-                processed_qa = {'bert_features': q_bert_features, 'qid': qa['id'], 'cid': cid, 'answer_offsets': answer_offsets}
+                processed_qa = {'bert_features': q_bert_features.tolist(), 'qid': qa['id'], 'cid': cid, 'answer_offsets': answer_offsets}
                 processed_dataset['qas'][qa['id']] = processed_qa
         cid += 1
     return processed_dataset
