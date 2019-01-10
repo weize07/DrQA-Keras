@@ -1,17 +1,34 @@
 import json
 import os
 import argparse
+import datetime
 
 from drqa.reader import BERTEmbedder
 
 def load_dataset(input_file):
-    """Read a list of `InputExample`s from an input file."""
+     """Read a list of `InputExample`s from an input file."""
     dataset = []
     with open(input_file) as f:
         data = json.load(f)['data']
         for article in data:
             dataset.extend(article['paragraphs'])
-            break
+    return dataset
+
+def load_dataset2(input_file):
+    """Read a list of `InputExample`s from an input file."""
+    dataset = {'contexts': {}, 'qas': {}}
+    cid = 1
+    with open(input_file) as f:
+        data = json.load(f)['data']
+        for article in data:
+            for para in article['paragraphs']:
+                ctx = {'cid': cid, 'context': para['context']}
+                qas = para['qas']
+                for qa in qas:
+                    qa['cid'] = cid
+                    dataset['qas'][qa['id']] = qa
+                dataset['contexts'][cid] = ctx
+                cid += 1
     return dataset
 
 def find_answer(ctx_token_ids, ans_token_ids):
@@ -31,6 +48,30 @@ def find_answer(ctx_token_ids, ans_token_ids):
             ctx_index = ctx_start
             answer_index = 0
     return None
+
+def process_dataset_batch(dataset, bert_path, workers=None):
+    bert_embedder = BERTEmbedder(bert_path)
+
+    processed_dataset = {'contexts': {}, 'qas': {}}
+
+    ctxs = list(dataset['contexts'].values())
+    batch_size = 64
+    for bid in range(0, len(ctxs), batch_size):
+        print('batch %d:%d start' % (bid, bid + batch_size))
+        start_time = datetime.datetime.now()     #放在程序开始处
+        batch = ctxs[bid:(bid + batch_size)]
+        docs = [ ctx['context'] for ctx in batch ]
+        (ctx_bert_predict, ctx_raw_features) = bert_embedder.embed_documents(docs)
+        i = 0
+        for pred in ctx_bert_predict:
+            cid = batch[i]['cid']
+            ctx_tokens = ctx_raw_features[i].tokens
+            processed_ctx = {'bert_features': pred['layer_output_0'].tolist(), 'cid': cid, 'tokens': ctx_tokens}
+            processed_dataset['contexts'][cid] = processed_ctx
+            i += 1
+        end_time = datetime.datetime.now()      #放在程序结尾处
+        interval = (end_time-start_time).seconds    #以秒的形式
+        print('batch %d end, time spent: %d' % (bid, interval))
 
 
 def process_dataset(dataset, bert_path, workers=None):
@@ -76,11 +117,11 @@ if __name__ == '__main__':
     # # parser.add_argument('--tokenizer', type=str, default='corenlp')
     args = parser.parse_args()
     # bert_path = '/Users/weize/Workspace/VENV-3.6/workspace/bert/uncased_L-12_H-768_A-12'
-    dataset = load_dataset(os.path.join(args.data_dir, 'SQuAD-v1.1-train.json'))
-    print('SQuAD-v1.1 dataset length: ', len(dataset))
-    processed_dataset = process_dataset(dataset, args.bert_path)
-    with open(os.path.join(args.out_dir, 'SQUAD-v1.1-train-processed-bert.json'), 'w') as file:
-        json.dump(processed_dataset, file)
+    dataset = load_dataset2(os.path.join(args.data_dir, 'SQuAD-v1.1-train.json'))
+    print('SQuAD-v1.1 dataset context count: %d, question count: %d ' % (len(dataset['contexts']), len(dataset['qas'])))
+    processed_dataset = process_dataset_batch(dataset, args.bert_path)
+    # with open(os.path.join(args.out_dir, 'SQUAD-v1.1-train-processed-bert.json'), 'w') as file:
+    #     json.dump(processed_dataset, file)
 
 
     

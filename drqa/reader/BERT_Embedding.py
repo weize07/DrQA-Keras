@@ -203,6 +203,13 @@ class BERTEmbedder(object):
                 input_type_ids=que_input_type_ids))
         return (que_features, len(que_tokens))
 
+    def embed_documents(self, documents):
+        (doc_features, max_seq_length) = self._prepare_docs(documents)
+        doc_input_fn = input_fn_builder(features=doc_features, seq_length=max_seq_length)
+        
+        doc_res = self.estimator.predict(doc_input_fn, yield_single_examples=True)
+        return (doc_res, doc_features)
+
     def embed_document(self, document):
         (doc_features, max_seq_length) = self._prepare_docs([document])
         doc_input_fn = input_fn_builder(features=doc_features, seq_length=max_seq_length)
