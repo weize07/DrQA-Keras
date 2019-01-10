@@ -37,7 +37,7 @@ def process_dataset(dataset, bert_path, workers=None):
     """Iterate processing (tokenize, parse, etc) dataset multithreaded."""
     bert_embedder = BERTEmbedder(bert_path)
 
-    processed = {'contexts': {}, 'qas': {}}
+    processed_dataset = {'contexts': {}, 'qas': {}}
     cid = 1
     for ctx_and_qas in dataset:
         context = ctx_and_qas['context']
@@ -48,8 +48,8 @@ def process_dataset(dataset, bert_path, workers=None):
             ctx_bert_features = result['layer_output_0']
         ctx_token_ids = ctx_raw_features[0].input_ids
         ctx_tokens = ctx_raw_features[0].tokens
-        ctx = {'bert_features': ctx_bert_features, 'cid': cid, 'text': context}
-        print('----------')
+        processed_ctx = {'bert_features': ctx_bert_features, 'cid': cid, 'tokens': ctx_tokens}
+        processed_dataset['contexts'][cid] = processed_ctx
         for qa in qas:
             question = qa['question']
             (q_bert_predict, q_raw_features) = bert_embedder.embed_question(question)
@@ -59,15 +59,16 @@ def process_dataset(dataset, bert_path, workers=None):
             answer_token_ids = bert_embedder.convert_txt_to_token_ids(qa['answers'][0]['text'])
             answer_offsets = find_answer(ctx_token_ids, answer_token_ids)
             if answer_offsets is not None:
-                print(ctx_tokens[answer_offsets[0]:answer_offsets[1]])
-            exit()
+                processed_qa = {'bert_features': q_bert_features, 'qid': qa['id'], 'cid': cid, 'answer_offsets': answer_offsets}
+                processed_dataset['qas'][qa['id']] = processed_qa
         cid += 1
+    return processed_dataset
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_dir', type=str, help='Path to SQuAD data directory')
-    # parser.add_argument('out_dir', type=str, help='Path to output file dir')
+    parser.add_argument('--out_dir', type=str, help='Path to output file dir')
     parser.add_argument('--bert_path', type=str, help='Path to output file dir')
     # parser.add_argument('--split', type=str, help='Filename for train/dev split',
     #                     default='SQuAD-v1.1-train')
@@ -77,6 +78,9 @@ if __name__ == '__main__':
     # bert_path = '/Users/weize/Workspace/VENV-3.6/workspace/bert/uncased_L-12_H-768_A-12'
     dataset = load_dataset(os.path.join(args.data_dir, 'SQuAD-v1.1-train.json'))
     print('SQuAD-v1.1 dataset length: ', len(dataset))
-    process_dataset(dataset, args.bert_path)
+    processed_dataset = process_dataset(dataset, args.bert_path)
+    with open(os.path.join(args.out_dir, 'SQUAD-v1.1-train-processed-bert.json'), 'w') as file:
+        json.dump(processed_dataset, file)
+
 
     
