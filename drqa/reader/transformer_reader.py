@@ -31,6 +31,21 @@ def prepare_data(args):
 
     return train_exs
 
+def build_start_model(ctx_dim, ctx_length, which_side):
+    """
+    softmax(CTX * Ws * Q), Ws/e: matrix for start/end injection 
+    which_side: start/end
+    """
+    inputs_ctx = Input(shape=(ctx_dim, ctx_length))
+    inputs_que = Input(shape=(ctx_dim, 1))
+
+    ctx_multi_mat = Dense(ctx_dim, activation='linear')(inputs_ctx)
+    ctx_mat_que = merge([ctx_multi_mat, inputs_que], output_shape=ctx_length, mode='mul')
+
+    output = Dense(ctx_dim, activation='softmax', name=('%s_probs' % which_side))(ctx_mat_que)
+    model = Model(input=[inputs_ctx, inputs_que], output=output)
+    return model
+
 def train_network(train_exs):
     X = []
     Y = []

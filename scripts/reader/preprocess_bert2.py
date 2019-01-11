@@ -6,7 +6,7 @@ import datetime
 from drqa.reader import BERTEmbedder
 
 def load_dataset(input_file):
-     """Read a list of `InputExample`s from an input file."""
+    """Read a list of `InputExample`s from an input file."""
     dataset = []
     with open(input_file) as f:
         data = json.load(f)['data']
@@ -49,7 +49,16 @@ def find_answer(ctx_token_ids, ans_token_ids):
             answer_index = 0
     return None
 
+def save_hdf5(processed_dataset):
+    return
+
+def load_hdf5():
+    processed_dataset = {}
+    return processed_dataset
+
 def process_dataset_batch(dataset, bert_path, workers=None):
+    """preprocess dataset to BERT representation"""
+
     bert_embedder = BERTEmbedder(bert_path)
 
     processed_dataset = {'contexts': {}, 'qas': {}}
@@ -120,6 +129,7 @@ if __name__ == '__main__':
     dataset = load_dataset2(os.path.join(args.data_dir, 'SQuAD-v1.1-train.json'))
     print('SQuAD-v1.1 dataset context count: %d, question count: %d ' % (len(dataset['contexts']), len(dataset['qas'])))
     processed_dataset = process_dataset_batch(dataset, args.bert_path)
+    save_hdf5(processed_dataset)
     # with open(os.path.join(args.out_dir, 'SQUAD-v1.1-train-processed-bert.json'), 'w') as file:
     #     json.dump(processed_dataset, file)
 
