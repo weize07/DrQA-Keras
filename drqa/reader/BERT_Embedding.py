@@ -203,12 +203,45 @@ class BERTEmbedder(object):
                 input_type_ids=que_input_type_ids))
         return (que_features, len(que_tokens))
 
+    def _prepare_questions(self, questions):
+        que_features = []
+        max_seq_length = 0
+        for question in questions:
+            que_tokens = ['[CLS]'] + self.tokenizer.tokenize(question) + ['[SEP]']
+            max_seq_length = max(max_seq_length, len(que_tokens))
+
+        for i in range(len(questions)):
+            question = questions[i]
+            que_input_ids = self.tokenizer.convert_tokens_to_ids(que_tokens)
+            que_input_type_ids = [ 0 for t in que_tokens ]
+            que_input_mask = [1] * len(que_input_type_ids)
+            # Zero-pad up to the sequence length.
+            while len(que_input_ids) < max_seq_length:
+                que_input_ids.append(0)
+                que_input_mask.append(0)
+                que_input_type_ids.append(0)
+            que_features.append(
+                InputFeatures(
+                    unique_id=i,
+                    tokens=que_tokens,
+                    input_ids=que_input_ids,
+                    input_mask=que_input_mask,
+                    input_type_ids=que_input_type_ids))
+        return (que_features, max_seq_length)
+
     def embed_documents(self, documents):
         (doc_features, max_seq_length) = self._prepare_docs(documents)
         doc_input_fn = input_fn_builder(features=doc_features, seq_length=max_seq_length)
         
         doc_res = self.estimator.predict(doc_input_fn, yield_single_examples=True)
         return (doc_res, doc_features)
+
+    def embed_questions(self, ques):
+        (que_features, max_seq_length) = self._prepare_questions(ques)
+        que_input_fn = input_fn_builder(features=que_features, seq_length=max_seq_length)
+        
+        que_res = self.estimator.predict(que_input_fn, yield_single_examples=True)
+        return (que_res, que_features)
 
     def embed_document(self, document):
         (doc_features, max_seq_length) = self._prepare_docs([document])

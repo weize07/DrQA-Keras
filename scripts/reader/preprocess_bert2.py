@@ -2,6 +2,7 @@ import json
 import os
 import argparse
 import datetime
+from hdf5_util import *
 
 from drqa.reader import BERTEmbedder
 
@@ -29,6 +30,8 @@ def load_dataset2(input_file):
                     dataset['qas'][qa['id']] = qa
                 dataset['contexts'][cid] = ctx
                 cid += 1
+                break
+            break
     return dataset
 
 def find_answer(ctx_token_ids, ans_token_ids):
@@ -75,12 +78,35 @@ def process_dataset_batch(dataset, bert_path, workers=None):
         for pred in ctx_bert_predict:
             cid = batch[i]['cid']
             ctx_tokens = ctx_raw_features[i].tokens
-            processed_ctx = {'bert_features': pred['layer_output_0'].tolist(), 'cid': cid, 'tokens': ctx_tokens}
+            processed_ctx = {'bert_features': np.asarray(pred['layer_output_0'].tolist()), 'cid': cid, 'tokens': ctx_tokens, 'token_ids': ctx_token_ids}
             processed_dataset['contexts'][cid] = processed_ctx
             i += 1
         end_time = datetime.datetime.now()      #放在程序结尾处
         interval = (end_time-start_time).seconds    #以秒的形式
         print('batch %d end, time spent: %d' % (bid, interval))
+
+    qas = list(dataset['qas'].values())
+    for qid in range(0, len(qas), batch_size):
+        batch = qas[bid:(bid + batch_size)]
+        ques = [ qa['question'] for qa in batch ]
+        (que_bert_predicts, que_raw_features) = bert_embedder.embed_questions(ques)
+        i = 0
+        for pred in que_bert_predicts:
+            qa = batch[i]
+            cid = qa['cid']
+            ans_text = qa['answers'][0]['text']
+            answer_token_ids = bert_embedder.convert_txt_to_token_ids(qa['answers'][0]['text'])
+            answer_offsets = find_answer(processed_dataset['contexts'][cid]['token_ids'], answer_token_ids)
+            if answer_offsets is not None:
+                processed_qa = {
+                    'bert_features': np.asarray(pred['layer_output_0'].tolist()), 
+                    'qid': qa['id'], 
+                    'cid': cid, 
+                    'answer_offsets': answer_offsets
+                }
+                processed_dataset['qas'][qa['id']] = processed_qa
+
+    return processed_dataset
 
 
 def process_dataset(dataset, bert_path, workers=None):
@@ -98,7 +124,7 @@ def process_dataset(dataset, bert_path, workers=None):
             ctx_bert_features = result['layer_output_0']
         ctx_token_ids = ctx_raw_features[0].input_ids
         ctx_tokens = ctx_raw_features[0].tokens
-        processed_ctx = {'bert_features': ctx_bert_features.tolist(), 'cid': cid, 'tokens': ctx_tokens}
+        processed_ctx = {'bert_features': np.asarray(ctx_bert_features.tolist()), 'cid': cid, 'tokens': json.dumps(ctx_tokens)}
         processed_dataset['contexts'][cid] = processed_ctx
         for qa in qas:
             question = qa['question']
@@ -109,13 +135,15 @@ def process_dataset(dataset, bert_path, workers=None):
             answer_token_ids = bert_embedder.convert_txt_to_token_ids(qa['answers'][0]['text'])
             answer_offsets = find_answer(ctx_token_ids, answer_token_ids)
             if answer_offsets is not None:
-                processed_qa = {'bert_features': q_bert_features.tolist(), 'qid': qa['id'], 'cid': cid, 'answer_offsets': answer_offsets}
+                processed_qa = {'bert_features': np.asarray(q_bert_features.tolist()), 'qid': qa['id'], 'cid': cid, 'answer_offsets': answer_offsets}
                 processed_dataset['qas'][qa['id']] = processed_qa
         cid += 1
     return processed_dataset
 
 
 if __name__ == '__main__':
+    # save_dict_to_hdf5({'cid': '1212', 'bert_features': np.asarray([[1, 2, 3]])}, 'test.hdf5')
+    # exit()
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_dir', type=str, help='Path to SQuAD data directory')
     parser.add_argument('--out_dir', type=str, help='Path to output file dir')
@@ -129,7 +157,8 @@ if __name__ == '__main__':
     dataset = load_dataset2(os.path.join(args.data_dir, 'SQuAD-v1.1-train.json'))
     print('SQuAD-v1.1 dataset context count: %d, question count: %d ' % (len(dataset['contexts']), len(dataset['qas'])))
     processed_dataset = process_dataset_batch(dataset, args.bert_path)
-    save_hdf5(processed_dataset)
+    print(processed_dataset)
+    # save_dict_to_hdf5(processed_dataset, 'test.hdf5')
     # with open(os.path.join(args.out_dir, 'SQUAD-v1.1-train-processed-bert.json'), 'w') as file:
     #     json.dump(processed_dataset, file)
 
