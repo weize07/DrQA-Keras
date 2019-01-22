@@ -173,6 +173,10 @@ class BERTEmbedder(object):
                     doc_input_type_ids.append(0)
             doc_input_ids = self.tokenizer.convert_tokens_to_ids(doc_tokens)
             doc_input_mask = [1] * len(doc_input_type_ids)
+            if len(doc_input_ids) > max_seq_length:
+                doc_input_ids = doc_input_ids[0:max_seq_length]
+                doc_input_mask = doc_input_mask[0:max_seq_length]
+                doc_input_type_ids = doc_input_type_ids[0:max_seq_length]
             # Zero-pad up to the sequence length.
             while len(doc_input_ids) < max_seq_length:
                 doc_input_ids.append(0)
