@@ -2,9 +2,12 @@ import json
 import os
 import argparse
 import datetime
-from hdf5_util import *
+import sys
 
+from hdf5_util import *
 from drqa.reader import BERTEmbedder
+
+sys.stdout.flush()
 
 def load_dataset(input_file):
     """Read a list of `InputExample`s from an input file."""
