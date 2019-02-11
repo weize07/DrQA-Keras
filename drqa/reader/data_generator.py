@@ -53,7 +53,8 @@ class DataGenerator(keras.utils.Sequence):
         for i, qid in enumerate(list_IDs_temp):
             # Store sample
             cid = dataset['qas'][qid]['cid']
-            X[i,] = np.array([dataset['contexts'][cid]['bert_features'], dataset['qas'][qid]['bert_features'][0]])
+            # X[i,] = np.array([dataset['contexts'][cid]['bert_features'], dataset['qas'][qid]['bert_features'][0]])
+            X[i,] = ([dataset['contexts'][cid]['bert_features'], dataset['qas'][qid]['bert_features'][0]])
 
             # Store class
             if self.side == 'start':
