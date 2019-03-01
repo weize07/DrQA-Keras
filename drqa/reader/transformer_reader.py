@@ -146,9 +146,8 @@ if __name__ == '__main__':
     X2 = np.array(X2)
     Y = np.array(Y)
     start_model = build_model(768, 512, 'start')
-    hist = start_model.fit([X1, X2], Y, verbose=1, epochs=100)
+    hist = start_model.fit([X1, X2], Y, verbose=1, epochs=500)
     # cb.losses
-    print(Y)
     y_prob = start_model.predict([X1, X2])
     y_classes = y_prob.argmax(axis=-1)
     print(y_classes)

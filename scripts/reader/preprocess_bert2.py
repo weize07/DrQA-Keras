@@ -33,6 +33,7 @@ def load_dataset2(input_file):
                     dataset['qas'][qa['id']] = qa
                 dataset['contexts'][str(cid)] = ctx
                 cid += 1
+            # break
     return dataset
 
 def find_answer(ctx_token_ids, ans_token_ids):
@@ -94,6 +95,7 @@ def process_dataset_batch(dataset, bert_path, workers=None):
         i = 0
         for pred in que_bert_predicts:
             qa = batch[i]
+            i += 1
             cid = qa['cid']
             ans_text = qa['answers'][0]['text']
             answer_token_ids = bert_embedder.convert_txt_to_token_ids(qa['answers'][0]['text'])
@@ -165,6 +167,8 @@ if __name__ == '__main__':
     print('SQuAD-v1.1 dataset context count: %d, question count: %d ' % (len(dataset['contexts']), len(dataset['qas'])))
     processed_dataset = process_dataset_batch(dataset, args.bert_path)
     # print(processed_dataset)
+    print(len(processed_dataset['contexts']))
+    print(len(processed_dataset['qas']))
     save_hdf5(processed_dataset, 'bert.hdf5')
     # with open(os.path.join(args.out_dir, 'SQUAD-v1.1-train-processed-bert.json'), 'w') as file:
     #     json.dump(processed_dataset, file)

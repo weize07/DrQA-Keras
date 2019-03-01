@@ -1,5 +1,5 @@
-import modeling
-import tokenization
+from .modeling import *
+from .tokenization import *
 import os
 
 import tensorflow as tf
@@ -73,7 +73,7 @@ def model_fn_builder(bert_config, init_checkpoint, layer_indexes, use_tpu,
         input_mask = features["input_mask"]
         input_type_ids = features["input_type_ids"]
 
-        model = modeling.BertModel(
+        model = BertModel(
             config=bert_config,
             is_training=False,
             input_ids=input_ids,
@@ -87,7 +87,7 @@ def model_fn_builder(bert_config, init_checkpoint, layer_indexes, use_tpu,
         tvars = tf.trainable_variables()
         scaffold_fn = None
         (assignment_map,
-         initialized_variable_names) = modeling.get_assignment_map_from_checkpoint(
+         initialized_variable_names) = get_assignment_map_from_checkpoint(
              tvars, init_checkpoint)
         if use_tpu:
 
@@ -129,8 +129,8 @@ class BERTEmbedder(object):
         bert_vocab_file = os.path.join(bert_config_path, 'vocab.txt')
         bert_checkpoint_file = os.path.join(bert_config_path, 'bert_model.ckpt')
         
-        self.bert_config = modeling.BertConfig.from_json_file(bert_config_file)
-        self.tokenizer = tokenization.FullTokenizer(
+        self.bert_config = BertConfig.from_json_file(bert_config_file)
+        self.tokenizer = FullTokenizer(
             vocab_file=bert_vocab_file, do_lower_case=True)
         model_fn = model_fn_builder(
             bert_config=self.bert_config,
